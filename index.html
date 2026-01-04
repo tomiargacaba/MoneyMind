@@ -2,168 +2,133 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MoneyMind</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
-body{font-family:Arial,sans-serif;background:#eef2f5;padding:20px}
-h1{text-align:center;color:#2c3e50}
-.container{max-width:780px;margin:auto;background:white;padding:20px;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,.1)}
-input,select,button{width:100%;padding:12px;margin-top:10px;font-size:16px}
-button{background:#27ae60;color:white;border:none;border-radius:6px;cursor:pointer}
-button:hover{background:#219150}
-.delete{background:#e74c3c}
-.delete:hover{background:#c0392b}
-.pro{background:#2980b9}
-.locked{background:#7f8c8d;cursor:not-allowed}
-.total{margin-top:12px;font-weight:bold;font-size:17px}
-.green{color:#27ae60}.red{color:#e74c3c}.orange{color:#e67e22}
-.advice{margin-top:15px;background:#ecf0f1;padding:15px;border-radius:8px}
-.expense{border-bottom:1px solid #ddd;padding:6px 0}
-canvas{margin-top:20px}
+body{font-family:'Poppins',sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);margin:0;padding:0;min-height:100vh;display:flex;justify-content:center;align-items:center}
+.container{background:#fff;width:100%;max-width:420px;border-radius:20px;padding:20px;box-shadow:0 15px 40px rgba(0,0,0,.2)}
+h1{text-align:center;margin:0 0 10px}
+.section{margin-bottom:15px}
+label{font-weight:600;font-size:14px}
+input,select,button{width:100%;padding:10px;margin-top:5px;border-radius:10px;border:1px solid #ccc;font-size:14px}
+button{background:#667eea;color:#fff;font-weight:600;border:none;cursor:pointer}
+button:hover{opacity:.9}
+.alert{padding:10px;border-radius:10px;margin-top:10px;font-size:14px}
+.ok{background:#e6fffa;border-left:5px solid #38b2ac}
+.warn{background:#fff5f5;border-left:5px solid #f56565}
+#advice{margin-top:10px}
+#list{margin-top:10px;font-size:13px}
+.item{border-bottom:1px solid #eee;padding:5px 0}
+.pro{background:#ffd700;color:#000;font-weight:600;margin-top:10px}
+.chat{margin-top:10px}
+.chat input{margin-bottom:5px}
 </style>
 </head>
 <body>
-<h1>MoneyMind – control inteligente de gastos</h1>
 <div class="container">
+<h1>MoneyMind</h1>
 
-<h3>💰 Presupuesto total</h3>
-<input type="number" id="budget" placeholder="¿Cuánta plata tenés disponible?">
-<button onclick="saveBudget()">Guardar presupuesto</button>
+<div class="section">
+<label>¿Cuánta plata tenés?</label>
+<input type="number" id="budget" placeholder="Ej: 50000">
+</div>
 
-<hr>
-
-<h3>🎯 Meta de gasto</h3>
+<div class="section">
+<label>Meta de gasto</label>
+<input type="number" id="goal" placeholder="Ej: 20000">
 <select id="period">
-  <option value="dia">Por día</option>
-  <option value="semana">Por semana</option>
-  <option value="mes">Por mes</option>
+<option value="dia">Por día</option>
+<option value="semana">Por semana</option>
+<option value="mes">Por mes</option>
 </select>
-<input type="number" id="goal" placeholder="¿Cuánto querés gastar en ese período?">
-<button onclick="saveGoal()">Guardar meta</button>
+</div>
 
-<hr>
-
-<h3>➕ Nuevo gasto</h3>
-<input type="number" id="amount" placeholder="Monto del gasto">
+<div class="section">
+<label>Monto</label>
+<input type="number" id="amount">
+<label>Categoría</label>
 <select id="category">
-  <option>Comida</option>
-  <option>Transporte</option>
-  <option>Entretenimiento</option>
-  <option>Otros</option>
+<option>Comida</option>
+<option>Transporte</option>
+<option>Entretenimiento</option>
+<option>Educación</option>
+<option>Salud</option>
+<option>Ropa</option>
+<option>Servicios</option>
+<option>Suscripciones</option>
+<option>Otros</option>
 </select>
-<input type="text" id="description" placeholder="Descripción">
-
+<label>Descripción</label>
+<input type="text" id="desc">
 <button onclick="addExpense()">Agregar gasto</button>
-<button class="delete" onclick="clearExpenses()">Borrar gastos</button>
-<button class="pro locked" onclick="showProInfo()">Modo PRO (Premium)</button>
+</div>
 
-<div class="total" id="total"></div>
-<div class="total" id="remaining"></div>
-<div class="total" id="goalStatus"></div>
-<div class="advice" id="advice"></div>
+<div id="advice" class="alert ok">Esperando datos...</div>
+<div id="list"></div>
 
-<canvas id="chart" width="650" height="280"></canvas>
-<div id="expenses"></div>
+<div class="chat section">
+<label>Preguntale a la IA</label>
+<input type="text" id="question" placeholder="¿Cómo puedo ahorrar más?">
+<button onclick="askAI()">Preguntar</button>
+</div>
+
+<button class="pro" onclick="togglePro()">Modo PRO</button>
 </div>
 
 <script>
-const amountInput=document.getElementById("amount");
-const categoryInput=document.getElementById("category");
-const descriptionInput=document.getElementById("description");
-const budgetInput=document.getElementById("budget");
-const goalInput=document.getElementById("goal");
-const periodInput=document.getElementById("period");
-const list=document.getElementById("expenses");
-const totalDiv=document.getElementById("total");
-const remainingDiv=document.getElementById("remaining");
-const goalStatus=document.getElementById("goalStatus");
-const adviceDiv=document.getElementById("advice");
-const canvas=document.getElementById("chart");
-const ctx=canvas.getContext("2d");
-
-let expenses=JSON.parse(localStorage.getItem("expenses")||"[]");
-let budget=Number(localStorage.getItem("budget")||0);
-let goal=Number(localStorage.getItem("goal")||0);
-let period=localStorage.getItem("period")||"dia";
-
-budgetInput.value=budget||"";
-goalInput.value=goal||"";
-periodInput.value=period;
-
-render();
-
-function saveBudget(){
- const v=Number(budgetInput.value);
- if(v<=0)return alert("Monto inválido");
- budget=v;localStorage.setItem("budget",v);render();
-}
-
-function saveGoal(){
- const v=Number(goalInput.value);
- if(v<=0)return alert("Meta inválida");
- goal=v;period=periodInput.value;
- localStorage.setItem("goal",v);
- localStorage.setItem("period",period);
- render();
-}
-
-function showProInfo(){
- alert("Funciones PRO:\n• Gráficos avanzados\n• Consejos expertos\n• Análisis por categoría\n\nDisponible próximamente.");
-}
-
+let expenses=[];let pro=false;
 function addExpense(){
- const amount=Number(amountInput.value);
- if(amount<=0)return;
- expenses.push({amount,category:categoryInput.value,description:descriptionInput.value,date:new Date().toLocaleDateString()});
- localStorage.setItem("expenses",JSON.stringify(expenses));
- amountInput.value="";descriptionInput.value="";render();
-}
+const amount=Number(document.getElementById('amount').value);
+const cat=document.getElementById('category').value;
+if(!amount)return;
+expenses.push({amount,cat});
+update();}
 
-function clearExpenses(){
- if(!confirm("¿Borrar todos los gastos?"))return;
- expenses=[];localStorage.removeItem("expenses");render();
-}
+function update(){
+const total=expenses.reduce((a,b)=>a+b.amount,0);
+const goal=Number(document.getElementById('goal').value);
+const adv=document.getElementById('advice');
+let msg='Vas bien con tus gastos.';
+let cls='ok';
+if(goal && total>goal){cls='warn';msg=advancedAdvice();}
+adv.className='alert '+cls;adv.innerText=msg;
+render();}
 
-function adviceByCategory(cat){
- if(cat==="Comida")return"Probá cocinar más en casa, comprar marcas económicas y planificar comidas.";
- if(cat==="Transporte")return"Considerá caminar, usar transporte público o agrupar viajes.";
- if(cat==="Entretenimiento")return"Reducí salidas pagas y buscá opciones gratis o más económicas.";
- return"Revisá si este gasto es realmente necesario o se puede postergar.";
+function advancedAdvice(){
+const sum={Comida:0,Transporte:0,Entretenimiento:0,Educación:0,Salud:0,Ropa:0,Servicios:0,Suscripciones:0,Otros:0};
+expenses.forEach(e=>sum[e.cat]+=e.amount);
+let top=Object.keys(sum).reduce((a,b)=>sum[a]>sum[b]?a:b);
+let base='Te pasaste de tu meta. ';
+let tips={
+Comida:['cociná en casa','evitá delivery seguido','planificá menús'],
+Transporte:['usá transporte público','compartí viajes','caminá trayectos cortos'],
+Entretenimiento:['buscá planes gratis','limitá salidas pagas','aprovechá descuentos'],
+Educación:['usá recursos online gratis','comprá usado','priorizá lo necesario'],
+Salud:['compará farmacias','prevención antes que gasto','seguí tratamientos'],
+Ropa:['comprá solo lo necesario','aprovechá ofertas','evitá compras impulsivas'],
+Servicios:['revisá planes','bajá consumo','negociá tarifas'],
+Suscripciones:['cancelá las que no usás','compartí planes','revisá mensualmente'],
+Otros:['postergá gastos','compará precios','pensalo 24hs']};
+let t=tips[top][Math.floor(Math.random()*tips[top].length)];
+return base+'Gastás más en '+top+'. Consejo: '+t;
 }
 
 function render(){
- list.innerHTML="";
- let total=0;let categories={};
- expenses.forEach(e=>{total+=e.amount;categories[e.category]=(categories[e.category]||0)+e.amount;
- const d=document.createElement("div");d.className="expense";d.textContent=`${e.date} | $${e.amount} | ${e.category} | ${e.description}`;list.appendChild(d);});
+const list=document.getElementById('list');
+list.innerHTML='';
+expenses.forEach(e=>{list.innerHTML+=`<div class="item">${e.cat}: $${e.amount}</div>`});}
 
- const remaining=budget-total;
- totalDiv.textContent=`Total gastado: $${total}`;
- remainingDiv.textContent=`Plata restante: $${remaining}`;
- remainingDiv.className=remaining<0?"total red":remaining<=budget*0.2?"total orange":"total green";
-
- let periodText=period==="dia"?"diaria":period==="semana"?"semanal":"mensual";
- goalStatus.textContent=goal?`Meta ${periodText}: $${goal}`:"";
-
- let msgs=[];
- if(goal && total>goal){
- msgs.push(`⚠️ Superaste tu meta ${periodText}.`);
- let maxCat=Object.keys(categories).reduce((a,b)=>categories[a]>categories[b]?a:b);
- msgs.push(adviceByCategory(maxCat));
- }
- if(remaining<0)msgs.push("Estás gastando más de lo que tenés.");
- if(msgs.length===0)msgs.push("Vas bien, seguí controlando tus gastos.");
-
- adviceDiv.innerHTML="🤖 Consejo IA:<br>• "+msgs.join("<br>• ");
- drawChart(categories);
+function askAI(){
+const q=document.getElementById('question').value.toLowerCase();
+let r='Controlar tus gastos es clave.';
+if(q.includes('comida'))r='Reducí delivery y planificá comidas.';
+if(q.includes('transporte'))r='Probá opciones más económicas.';
+if(q.includes('ahorrar'))r='Definí metas claras y evitá impulsos.';
+document.getElementById('advice').innerText=r;
 }
 
-function drawChart(categories){
- ctx.clearRect(0,0,canvas.width,canvas.height);
- const keys=Object.keys(categories);if(!keys.length)return;
- const vals=Object.values(categories);const max=Math.max(...vals);
- keys.forEach((k,i)=>{const h=(vals[i]/max)*200;const x=60+i*120;const y=240-h;
- ctx.fillStyle="#3498db";ctx.fillRect(x,y,80,h);ctx.fillStyle="black";ctx.fillText(k,x,y+215);ctx.fillText("$"+vals[i],x,y-5);});
-}
+function togglePro(){pro=!pro;alert(pro?'Modo PRO activado':'Modo PRO desactivado');}
 </script>
 </body>
 </html>
