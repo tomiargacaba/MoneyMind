@@ -16,7 +16,7 @@ h1 {
 }
 
 .container {
-  max-width: 650px;
+  max-width: 700px;
   margin: auto;
   background: white;
   padding: 20px;
@@ -36,25 +36,13 @@ button {
   cursor: pointer;
 }
 
-button:hover {
-  background: #219150;
-}
+button:hover { background: #219150; }
 
-.delete {
-  background: #e74c3c;
-}
+.delete { background: #e74c3c; }
+.delete:hover { background: #c0392b; }
 
-.delete:hover {
-  background: #c0392b;
-}
-
-.pro {
-  background: #2980b9;
-}
-
-.pro:hover {
-  background: #1f5f8b;
-}
+.pro { background: #2980b9; }
+.pro:hover { background: #1f5f8b; }
 
 .total {
   margin-top: 15px;
@@ -71,6 +59,10 @@ button:hover {
 .expense {
   border-bottom: 1px solid #ddd;
   padding: 5px 0;
+}
+
+canvas {
+  margin-top: 20px;
 }
 </style>
 </head>
@@ -97,30 +89,25 @@ button:hover {
 <div class="total" id="total">Total gastado: $0</div>
 <div class="advice" id="advice">Consejo IA: empezá registrando tus gastos.</div>
 
+<canvas id="chart" width="600" height="300"></canvas>
+
 <div id="expenses"></div>
 
 </div>
 
 <script>
-/* =========================
-   REFERENCIAS (PRIMERO)
-========================= */
 const amountInput = document.getElementById("amount");
 const categoryInput = document.getElementById("category");
 const descriptionInput = document.getElementById("description");
 const list = document.getElementById("expenses");
 const totalDiv = document.getElementById("total");
 const adviceDiv = document.getElementById("advice");
+const canvas = document.getElementById("chart");
+const ctx = canvas.getContext("2d");
 
-/* =========================
-   VARIABLES
-========================= */
 let expenses = [];
 let proMode = false;
 
-/* =========================
-   CARGA DE DATOS
-========================= */
 const savedExpenses = localStorage.getItem("expenses");
 if (savedExpenses) expenses = JSON.parse(savedExpenses);
 
@@ -129,9 +116,32 @@ if (savedPro === "true") proMode = true;
 
 render();
 
-/* =========================
-   2️⃣ CONSEJOS IA
-========================= */
+// 1️⃣ GRÁFICO DE GASTOS
+function drawChart(categories) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const keys = Object.keys(categories);
+  if (keys.length === 0) return;
+
+  const values = Object.values(categories);
+  const max = Math.max(...values);
+  const barWidth = 80;
+  const gap = 40;
+
+  keys.forEach((key, i) => {
+    const height = (values[i] / max) * 200;
+    const x = 50 + i * (barWidth + gap);
+    const y = 250 - height;
+
+    ctx.fillStyle = "#3498db";
+    ctx.fillRect(x, y, barWidth, height);
+
+    ctx.fillStyle = "black";
+    ctx.fillText(key, x, 270);
+    ctx.fillText("$" + values[i], x, y - 5);
+  });
+}
+
+// 2️⃣ CONSEJOS IA MEJORADOS
 function generateAdvice(total, categories) {
   let advice = "Buen control de gastos.";
   let biggest = "";
@@ -144,22 +154,21 @@ function generateAdvice(total, categories) {
     }
   }
 
-  if (total > 20000) {
-    advice = "Estás gastando mucho este período. Intentá reducir gastos.";
+  if (total === 0) {
+    advice = "Todavía no registraste gastos.";
+  } else if (total > 30000) {
+    advice = "Nivel de gasto alto. Intentá fijarte un límite semanal.";
   } else if (biggest) {
-    advice = `Tu mayor gasto es en ${biggest}. Podrías optimizarlo.`;
+    advice = `El mayor gasto es ${biggest}. Podrías reducirlo un poco.`;
   }
 
   if (proMode) {
-    advice += " (Análisis PRO: podrías ahorrar este mes ajustando hábitos)";
+    advice += " Análisis PRO: si bajás un 10% este gasto, ahorrarías más este mes.";
   }
 
   adviceDiv.textContent = "Consejo IA: " + advice;
 }
 
-/* =========================
-   3️⃣ BORRAR GASTOS
-========================= */
 function clearExpenses() {
   if (!confirm("¿Seguro que querés borrar todo?")) return;
   expenses = [];
@@ -167,9 +176,6 @@ function clearExpenses() {
   render();
 }
 
-/* =========================
-   4️⃣ MODO PRO
-========================= */
 function togglePro() {
   proMode = !proMode;
   localStorage.setItem("proMode", proMode);
@@ -177,9 +183,6 @@ function togglePro() {
   render();
 }
 
-/* =========================
-   FUNCIONES PRINCIPALES
-========================= */
 function addExpense() {
   const amount = Number(amountInput.value);
   if (amount <= 0) return;
@@ -214,6 +217,7 @@ function render() {
 
   totalDiv.textContent = "Total gastado: $" + total;
   generateAdvice(total, categories);
+  drawChart(categories);
 }
 </script>
 
