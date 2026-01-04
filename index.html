@@ -16,7 +16,7 @@ h1 {
 }
 
 .container {
-  max-width: 700px;
+  max-width: 650px;
   margin: auto;
   background: white;
   padding: 20px;
@@ -40,20 +40,20 @@ button:hover {
   background: #219150;
 }
 
-.pro {
-  background: #2980b9;
-}
-
-.pro:hover {
-  background: #1f5f8b;
-}
-
 .delete {
   background: #e74c3c;
 }
 
 .delete:hover {
   background: #c0392b;
+}
+
+.pro {
+  background: #2980b9;
+}
+
+.pro:hover {
+  background: #1f5f8b;
 }
 
 .total {
@@ -71,10 +71,6 @@ button:hover {
 .expense {
   border-bottom: 1px solid #ddd;
   padding: 5px 0;
-}
-
-canvas {
-  margin-top: 20px;
 }
 </style>
 </head>
@@ -96,25 +92,37 @@ canvas {
 
 <button onclick="addExpense()">Agregar gasto</button>
 <button class="delete" onclick="clearExpenses()">Borrar todos los gastos</button>
-<button class="pro" onclick="togglePro()">Activar modo PRO</button>
+<button class="pro" onclick="togglePro()">Activar / Desactivar modo PRO</button>
 
 <div class="total" id="total">Total gastado: $0</div>
-
 <div class="advice" id="advice">Consejo IA: empezá registrando tus gastos.</div>
-
-<canvas id="chart" width="500" height="220"></canvas>
 
 <div id="expenses"></div>
 
 </div>
 
 <script>
+/* =========================
+   REFERENCIAS (PRIMERO)
+========================= */
+const amountInput = document.getElementById("amount");
+const categoryInput = document.getElementById("category");
+const descriptionInput = document.getElementById("description");
+const list = document.getElementById("expenses");
+const totalDiv = document.getElementById("total");
+const adviceDiv = document.getElementById("advice");
+
+/* =========================
+   VARIABLES
+========================= */
 let expenses = [];
 let proMode = false;
 
-// Cargar datos
-const saved = localStorage.getItem("expenses");
-if (saved) expenses = JSON.parse(saved);
+/* =========================
+   CARGA DE DATOS
+========================= */
+const savedExpenses = localStorage.getItem("expenses");
+if (savedExpenses) expenses = JSON.parse(savedExpenses);
 
 const savedPro = localStorage.getItem("proMode");
 if (savedPro === "true") proMode = true;
@@ -122,7 +130,7 @@ if (savedPro === "true") proMode = true;
 render();
 
 /* =========================
-   2️⃣ CONSEJOS IA INTELIGENTES
+   2️⃣ CONSEJOS IA
 ========================= */
 function generateAdvice(total, categories) {
   let advice = "Buen control de gastos.";
@@ -137,49 +145,16 @@ function generateAdvice(total, categories) {
   }
 
   if (total > 20000) {
-    advice = "Estás gastando mucho este período. Prioritá necesidades.";
+    advice = "Estás gastando mucho este período. Intentá reducir gastos.";
   } else if (biggest) {
-    advice = `Tu mayor gasto es en ${biggest}. Revisá si podés reducirlo.`;
+    advice = `Tu mayor gasto es en ${biggest}. Podrías optimizarlo.`;
   }
 
   if (proMode) {
-    advice += " (Análisis PRO: podrías ahorrar hasta un 15% ajustando hábitos)";
+    advice += " (Análisis PRO: podrías ahorrar este mes ajustando hábitos)";
   }
 
   adviceDiv.textContent = "Consejo IA: " + advice;
-}
-
-/* =========================
-   4️⃣ MODO PRO
-========================= */
-function togglePro() {
-  proMode = !proMode;
-  localStorage.setItem("proMode", proMode);
-  alert(proMode ? "Modo PRO activado" : "Modo PRO desactivado");
-  render();
-}
-
-/* =========================
-   1️⃣ GRÁFICO DE GASTOS
-========================= */
-function drawChart(categories) {
-  const ctx = chart.getContext("2d");
-  ctx.clearRect(0, 0, chart.width, chart.height);
-
-  const keys = Object.keys(categories);
-  if (keys.length === 0) return;
-
-  const max = Math.max(...Object.values(categories));
-  let x = 30;
-
-  keys.forEach(cat => {
-    const height = (categories[cat] / max) * 150;
-    ctx.fillStyle = "#27ae60";
-    ctx.fillRect(x, 180 - height, 60, height);
-    ctx.fillStyle = "#000";
-    ctx.fillText(cat, x, 200);
-    x += 90;
-  });
 }
 
 /* =========================
@@ -189,6 +164,16 @@ function clearExpenses() {
   if (!confirm("¿Seguro que querés borrar todo?")) return;
   expenses = [];
   localStorage.removeItem("expenses");
+  render();
+}
+
+/* =========================
+   4️⃣ MODO PRO
+========================= */
+function togglePro() {
+  proMode = !proMode;
+  localStorage.setItem("proMode", proMode);
+  alert(proMode ? "Modo PRO activado" : "Modo PRO desactivado");
   render();
 }
 
@@ -229,17 +214,7 @@ function render() {
 
   totalDiv.textContent = "Total gastado: $" + total;
   generateAdvice(total, categories);
-  drawChart(categories);
 }
-
-// referencias
-const amountInput = document.getElementById("amount");
-const categoryInput = document.getElementById("category");
-const descriptionInput = document.getElementById("description");
-const list = document.getElementById("expenses");
-const totalDiv = document.getElementById("total");
-const adviceDiv = document.getElementById("advice");
-const chart = document.getElementById("chart");
 </script>
 
 </body>
