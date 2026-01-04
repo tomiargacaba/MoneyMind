@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoneyMind – Control de Gastos Inteligente</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f4f6f8; margin:0; padding:20px; }
+    h1 { text-align:center; }
+    .container { max-width:900px; margin:auto; background:#fff; padding:20px; border-radius:8px; }
+    form { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-bottom:20px; }
+    input, select, button { padding:8px; }
+    button { grid-column: span 4; background:#4caf50; color:#fff; border:none; cursor:pointer; }
+    table { width:100%; border-collapse:collapse; margin-top:20px; }
+    th, td { border:1px solid #ddd; padding:8px; text-align:center; }
+    th { background:#eee; }
+    .stats { display:flex; gap:20px; margin-top:20px; }
+    .card { flex:1; background:#fafafa; padding:15px; border-radius:6px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>MoneyMind 💰</h1>
+    <p style="text-align:center">Tu dinero claro, con inteligencia automática</p>
+
+    <form id="expenseForm">
+      <input type="date" id="date" required />
+      <input type="number" id="amount" placeholder="Monto" required />
+      <select id="category">
+        <option>Comida</option>
+        <option>Transporte</option>
+        <option>Entretenimiento</option>
+        <option>Servicios</option>
+        <option>Otros</option>
+      </select>
+      <input type="text" id="desc" placeholder="Descripción" />
+      <button type="submit">Agregar gasto</button>
+    </form>
+
+    <div class="stats">
+      <div class="card" id="totalCard">Total gastado: $0</div>
+      <div class="card" id="adviceCard">Consejo IA: —</div>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Fecha</th><th>Monto</th><th>Categoría</th><th>Descripción</th></tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const form = document.getElementById('expenseForm');
+    const tableBody = document.getElementById('tableBody');
+    const totalCard = document.getElementById('totalCard');
+    const adviceCard = document.getElementById('adviceCard');
+
+    // Cargar gastos guardados
+    let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
+    updateUI();
+
+    function updateUI() {
+      tableBody.innerHTML = '';
+      let total = 0;
+      const categoryTotals = {};
+
+      expenses.forEach(e => {
+        total += e.amount;
+        categoryTotals[e.category] = (categoryTotals[e.category] || 0) + e.amount;
+        const row = `<tr><td>${e.date}</td><td>$${e.amount}</td><td>${e.category}</td><td>${e.desc}</td></tr>`;
+        tableBody.innerHTML += row;
+      });
+
+      totalCard.textContent = `Total gastado: $${total}`;
+
+      // IA mejorada (reglas inteligentes)
+      let maxCat = null, maxVal = 0;
+      for (let c in categoryTotals) {
+        if (categoryTotals[c] > maxVal) { maxVal = categoryTotals[c]; maxCat = c; }
+      }
+
+      if (maxCat) {
+        let advice = "";
+
+        if (maxVal > total * 0.5) {
+          advice = `Más del 50% de tus gastos están en ${maxCat}. Ahorrar solo un 10% ahí marcaría una gran diferencia.`;
+        } else if (maxCat === "Entretenimiento") {
+          advice = "El entretenimiento es tu gasto principal. Probá fijar un límite semanal.";
+        } else if (maxCat === "Comida") {
+          advice = "La comida lidera tus gastos. Planificar compras puede ayudarte a gastar menos.";
+        } else {
+          advice = `La categoría ${maxCat} es la más alta. Revisá si podés optimizarla.`;
+        }
+
+        adviceCard.textContent = `Consejo IA: ${advice}`;
+      }
+    }
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const expense = {
+        date: date.value,
+        amount: Number(amount.value),
+        category: category.value,
+        desc: desc.value
+      };
+      expenses.push(expense);
+      localStorage.setItem("expenses", JSON.stringify(expenses));
+      form.reset();
+      updateUI();
+    });
+  </script>
+</body>
+</html>
