@@ -7,58 +7,76 @@
 <style>
 body {
   font-family: Arial, sans-serif;
-  background: #f4f6f8;
+  background: #eef2f5;
   padding: 20px;
 }
 
 h1 {
   text-align: center;
+  color: #2c3e50;
 }
 
 .container {
-  max-width: 700px;
+  max-width: 750px;
   margin: auto;
   background: white;
   padding: 20px;
-  border-radius: 8px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
 input, select, button {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   margin-top: 10px;
+  font-size: 16px;
 }
 
 button {
   background: #27ae60;
   color: white;
   border: none;
+  border-radius: 6px;
   cursor: pointer;
 }
 
 button:hover { background: #219150; }
 
-.delete { background: #e74c3c; }
+.delete {
+  background: #e74c3c;
+}
+
 .delete:hover { background: #c0392b; }
 
-.pro { background: #2980b9; }
-.pro:hover { background: #1f5f8b; }
+.pro {
+  background: #2980b9;
+}
+
+.locked {
+  background: #7f8c8d;
+  cursor: not-allowed;
+}
 
 .total {
   margin-top: 15px;
   font-weight: bold;
+  font-size: 18px;
 }
+
+.green { color: #27ae60; }
+.red { color: #e74c3c; }
+.orange { color: #e67e22; }
 
 .advice {
   margin-top: 15px;
   background: #ecf0f1;
-  padding: 10px;
-  border-radius: 5px;
+  padding: 15px;
+  border-radius: 8px;
 }
 
 .expense {
   border-bottom: 1px solid #ddd;
-  padding: 5px 0;
+  padding: 6px 0;
 }
 
 canvas {
@@ -73,23 +91,30 @@ canvas {
 
 <div class="container">
 
-<input type="number" id="amount" placeholder="Monto">
+<input type="number" id="budget" placeholder="💰 ¿Cuánta plata tenés disponible?">
+<button onclick="saveBudget()">Guardar monto</button>
+
+<hr>
+
+<input type="number" id="amount" placeholder="Monto del gasto">
 <select id="category">
   <option>Comida</option>
   <option>Transporte</option>
   <option>Entretenimiento</option>
   <option>Otros</option>
 </select>
-<input type="text" id="description" placeholder="Descripción">
+<input type="text" id="description" placeholder="Descripción del gasto">
 
 <button onclick="addExpense()">Agregar gasto</button>
 <button class="delete" onclick="clearExpenses()">Borrar todos los gastos</button>
-<button class="pro" onclick="togglePro()">Activar / Desactivar modo PRO</button>
+<button id="proBtn" class="pro locked" onclick="showProInfo()">Modo PRO (Premium)</button>
 
-<div class="total" id="total">Total gastado: $0</div>
-<div class="advice" id="advice">Consejo IA: empezá registrando tus gastos.</div>
+<div class="total" id="total"></div>
+<div class="total" id="remaining"></div>
 
-<canvas id="chart" width="600" height="300"></canvas>
+<div class="advice" id="advice"></div>
+
+<canvas id="chart" width="650" height="300"></canvas>
 
 <div id="expenses"></div>
 
@@ -99,90 +124,42 @@ canvas {
 const amountInput = document.getElementById("amount");
 const categoryInput = document.getElementById("category");
 const descriptionInput = document.getElementById("description");
+const budgetInput = document.getElementById("budget");
 const list = document.getElementById("expenses");
 const totalDiv = document.getElementById("total");
+const remainingDiv = document.getElementById("remaining");
 const adviceDiv = document.getElementById("advice");
 const canvas = document.getElementById("chart");
 const ctx = canvas.getContext("2d");
 
-let expenses = [];
-let proMode = false;
+let expenses = JSON.parse(localStorage.getItem("expenses") || "[]");
+let budget = Number(localStorage.getItem("budget") || 0);
 
-const savedExpenses = localStorage.getItem("expenses");
-if (savedExpenses) expenses = JSON.parse(savedExpenses);
-
-const savedPro = localStorage.getItem("proMode");
-if (savedPro === "true") proMode = true;
+if (budget > 0) budgetInput.value = budget;
 
 render();
 
-// 1️⃣ GRÁFICO DE GASTOS
-function drawChart(categories) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const keys = Object.keys(categories);
-  if (keys.length === 0) return;
-
-  const values = Object.values(categories);
-  const max = Math.max(...values);
-  const barWidth = 80;
-  const gap = 40;
-
-  keys.forEach((key, i) => {
-    const height = (values[i] / max) * 200;
-    const x = 50 + i * (barWidth + gap);
-    const y = 250 - height;
-
-    ctx.fillStyle = "#3498db";
-    ctx.fillRect(x, y, barWidth, height);
-
-    ctx.fillStyle = "black";
-    ctx.fillText(key, x, 270);
-    ctx.fillText("$" + values[i], x, y - 5);
-  });
-}
-
-// 2️⃣ CONSEJOS IA MEJORADOS
-function generateAdvice(total, categories) {
-  let advice = "Buen control de gastos.";
-  let biggest = "";
-  let max = 0;
-
-  for (let c in categories) {
-    if (categories[c] > max) {
-      max = categories[c];
-      biggest = c;
-    }
-  }
-
-  if (total === 0) {
-    advice = "Todavía no registraste gastos.";
-  } else if (total > 30000) {
-    advice = "Nivel de gasto alto. Intentá fijarte un límite semanal.";
-  } else if (biggest) {
-    advice = `El mayor gasto es ${biggest}. Podrías reducirlo un poco.`;
-  }
-
-  if (proMode) {
-    advice += " Análisis PRO: si bajás un 10% este gasto, ahorrarías más este mes.";
-  }
-
-  adviceDiv.textContent = "Consejo IA: " + advice;
-}
-
-function clearExpenses() {
-  if (!confirm("¿Seguro que querés borrar todo?")) return;
-  expenses = [];
-  localStorage.removeItem("expenses");
+// 💰 Presupuesto
+function saveBudget() {
+  const value = Number(budgetInput.value);
+  if (value <= 0) return alert("Ingresá un monto válido");
+  budget = value;
+  localStorage.setItem("budget", budget);
   render();
 }
 
-function togglePro() {
-  proMode = !proMode;
-  localStorage.setItem("proMode", proMode);
-  alert(proMode ? "Modo PRO activado" : "Modo PRO desactivado");
-  render();
+// 🔒 Info PRO
+function showProInfo() {
+  alert(
+    "Modo PRO (Premium)\n\n" +
+    "✔ Gráficos avanzados\n" +
+    "✔ Consejos inteligentes\n" +
+    "✔ Análisis de ahorro\n\n" +
+    "Disponible próximamente."
+  );
 }
 
+// ➕ Agregar gasto
 function addExpense() {
   const amount = Number(amountInput.value);
   if (amount <= 0) return;
@@ -200,6 +177,60 @@ function addExpense() {
   render();
 }
 
+// 🗑️ Borrar
+function clearExpenses() {
+  if (!confirm("¿Seguro que querés borrar todo?")) return;
+  expenses = [];
+  localStorage.removeItem("expenses");
+  render();
+}
+
+// 🧠 Consejos IA
+function generateAdvice(total, remaining, categories) {
+  let msgs = [];
+
+  if (total === 0) msgs.push("Buen comienzo, todavía no gastaste nada.");
+  if (remaining < 0) msgs.push("⚠️ Estás gastando más de lo que tenés.");
+  if (remaining <= budget * 0.2 && remaining >= 0)
+    msgs.push("⚠️ Te queda menos del 20% de tu plata.");
+
+  let maxCat = "", max = 0;
+  for (let c in categories) {
+    if (categories[c] > max) {
+      max = categories[c];
+      maxCat = c;
+    }
+  }
+
+  if (maxCat) msgs.push(`Gastás más en ${maxCat}.`);
+
+  msgs.push("Activá PRO para consejos avanzados y gráficos.");
+
+  adviceDiv.innerHTML = "🤖 Consejo IA:<br>• " + msgs.join("<br>• ");
+}
+
+// 📊 Gráfico (demo)
+function drawChart(categories) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const keys = Object.keys(categories);
+  if (keys.length === 0) return;
+
+  const values = Object.values(categories);
+  const max = Math.max(...values);
+
+  keys.forEach((k, i) => {
+    const h = (values[i] / max) * 200;
+    const x = 60 + i * 120;
+    const y = 250 - h;
+    ctx.fillStyle = "#3498db";
+    ctx.fillRect(x, y, 80, h);
+    ctx.fillStyle = "black";
+    ctx.fillText(k, x, 270);
+    ctx.fillText("$" + values[i], x, y - 5);
+  });
+}
+
+// 🔄 Render
 function render() {
   list.innerHTML = "";
   let total = 0;
@@ -215,8 +246,17 @@ function render() {
     list.appendChild(div);
   });
 
-  totalDiv.textContent = "Total gastado: $" + total;
-  generateAdvice(total, categories);
+  const remaining = budget - total;
+
+  totalDiv.textContent = `Total gastado: $${total}`;
+  remainingDiv.textContent = `Plata restante: $${remaining}`;
+
+  remainingDiv.className =
+    remaining < 0 ? "total red" :
+    remaining <= budget * 0.2 ? "total orange" :
+    "total green";
+
+  generateAdvice(total, remaining, categories);
   drawChart(categories);
 }
 </script>
