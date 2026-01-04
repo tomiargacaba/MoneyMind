@@ -1,154 +1,205 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>MoneyMind</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      margin: 0;
-      padding: 20px;
-    }
+<meta charset="UTF-8">
+<title>MoneyMind</title>
 
-    h1 {
-      text-align: center;
-      color: #2c3e50;
-    }
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+  padding: 20px;
+}
 
-    .container {
-      max-width: 600px;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-    }
+h1 {
+  text-align: center;
+}
 
-    input, select, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-    }
+.container {
+  max-width: 650px;
+  margin: auto;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+}
 
-    button {
-      background: #27ae60;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
+input, select, button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+}
 
-    button:hover {
-      background: #219150;
-    }
+button {
+  background: #27ae60;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
 
-    .total {
-      margin-top: 20px;
-      font-weight: bold;
-    }
+button:hover {
+  background: #219150;
+}
 
-    .expense {
-      border-bottom: 1px solid #ddd;
-      padding: 5px 0;
-    }
+.delete {
+  background: #e74c3c;
+}
 
-    .advice {
-      margin-top: 15px;
-      background: #ecf0f1;
-      padding: 10px;
-      border-radius: 5px;
-    }
-  </style>
+.delete:hover {
+  background: #c0392b;
+}
+
+.total {
+  margin-top: 15px;
+  font-weight: bold;
+}
+
+.advice {
+  margin-top: 15px;
+  background: #ecf0f1;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+.expense {
+  border-bottom: 1px solid #ddd;
+  padding: 5px 0;
+}
+
+canvas {
+  margin-top: 20px;
+}
+</style>
 </head>
+
 <body>
 
-  <h1>MoneyMind – tu dinero claro con inteligencia automática</h1>
+<h1>MoneyMind – tu dinero claro con inteligencia automática</h1>
 
-  <div class="container">
-    <input type="date" id="birthdate">
-    <input type="number" id="amount" placeholder="Monto">
-    
-    <select id="category">
-      <option value="Comida">Comida</option>
-      <option value="Transporte">Transporte</option>
-      <option value="Entretenimiento">Entretenimiento</option>
-      <option value="Otros">Otros</option>
-    </select>
+<div class="container">
 
-    <input type="text" id="description" placeholder="Descripción">
+<input type="number" id="amount" placeholder="Monto">
+<select id="category">
+  <option>Comida</option>
+  <option>Transporte</option>
+  <option>Entretenimiento</option>
+  <option>Otros</option>
+</select>
+<input type="text" id="description" placeholder="Descripción">
 
-    <button onclick="addExpense()">Agregar gasto</button>
+<button onclick="addExpense()">Agregar gasto</button>
+<button class="delete" onclick="clearExpenses()">Borrar todos los gastos</button>
 
-    <div class="total" id="total">Total gastado: $0</div>
+<div class="total" id="total">Total gastado: $0</div>
+<div class="advice" id="advice">Consejo IA: empezá registrando tus gastos.</div>
 
-    <div class="advice" id="advice">Consejo IA: empezá registrando tus gastos.</div>
+<canvas id="chart" width="400" height="200"></canvas>
 
-    <div id="expenses"></div>
-  </div>
+<div id="expenses"></div>
 
-  <script>
-    let expenses = [];
+</div>
 
-    // CARGAR GASTOS GUARDADOS
-    const savedExpenses = localStorage.getItem("expenses");
-    if (savedExpenses) {
-      expenses = JSON.parse(savedExpenses);
-      renderExpenses();
+<script>
+let expenses = [];
+const saved = localStorage.getItem("expenses");
+if (saved) {
+  expenses = JSON.parse(saved);
+  render();
+}
+
+function addExpense() {
+  const amount = Number(amountInput.value);
+  const category = categoryInput.value;
+  const description = descriptionInput.value;
+  if (amount <= 0) return;
+
+  expenses.push({
+    amount,
+    category,
+    description,
+    date: new Date().toLocaleDateString()
+  });
+
+  localStorage.setItem("expenses", JSON.stringify(expenses));
+  amountInput.value = "";
+  descriptionInput.value = "";
+  render();
+}
+
+function clearExpenses() {
+  if (!confirm("¿Seguro que querés borrar todo?")) return;
+  expenses = [];
+  localStorage.removeItem("expenses");
+  render();
+}
+
+function render() {
+  list.innerHTML = "";
+  let total = 0;
+  let categories = {};
+
+  expenses.forEach(e => {
+    total += e.amount;
+    categories[e.category] = (categories[e.category] || 0) + e.amount;
+
+    const div = document.createElement("div");
+    div.className = "expense";
+    div.textContent = `${e.date} | $${e.amount} | ${e.category} | ${e.description}`;
+    list.appendChild(div);
+  });
+
+  totalDiv.textContent = "Total gastado: $" + total;
+  generateAdvice(total, categories);
+  drawChart(categories);
+}
+
+function generateAdvice(total, categories) {
+  let biggest = "";
+  let max = 0;
+
+  for (let c in categories) {
+    if (categories[c] > max) {
+      max = categories[c];
+      biggest = c;
     }
+  }
 
-    function addExpense() {
-      const amount = Number(document.getElementById("amount").value);
-      const category = document.getElementById("category").value;
-      const description = document.getElementById("description").value;
-      const date = new Date().toLocaleDateString();
+  let advice = "Buen control de gastos.";
+  if (total > 15000) advice = "Estás gastando mucho. Intentá reducir gastos innecesarios.";
+  else if (biggest) advice = `Tu mayor gasto es en ${biggest}. Podrías optimizarlo.`;
 
-      if (!amount || amount <= 0) return;
+  adviceDiv.textContent = "Consejo IA: " + advice;
+}
 
-      expenses.push({
-        date,
-        amount,
-        category,
-        description
-      });
+function drawChart(categories) {
+  const ctx = chart.getContext("2d");
+  ctx.clearRect(0, 0, chart.width, chart.height);
 
-      localStorage.setItem("expenses", JSON.stringify(expenses));
+  const keys = Object.keys(categories);
+  if (keys.length === 0) return;
 
-      document.getElementById("amount").value = "";
-      document.getElementById("description").value = "";
+  const max = Math.max(...Object.values(categories));
+  const barWidth = 60;
+  let x = 20;
 
-      renderExpenses();
-    }
+  keys.forEach(cat => {
+    const height = (categories[cat] / max) * 150;
+    ctx.fillStyle = "#27ae60";
+    ctx.fillRect(x, 180 - height, barWidth, height);
+    ctx.fillStyle = "#000";
+    ctx.fillText(cat, x, 195);
+    x += 80;
+  });
+}
 
-    function renderExpenses() {
-      const list = document.getElementById("expenses");
-      list.innerHTML = "";
-
-      let total = 0;
-
-      expenses.forEach(exp => {
-        total += exp.amount;
-
-        const div = document.createElement("div");
-        div.className = "expense";
-        div.textContent = `${exp.date} | $${exp.amount} | ${exp.category} | ${exp.description}`;
-        list.appendChild(div);
-      });
-
-      document.getElementById("total").textContent = `Total gastado: $${total}`;
-      generateAdvice(total);
-    }
-
-    function generateAdvice(total) {
-      let advice = "Vas bien controlando tus gastos.";
-
-      if (total > 10000) {
-        advice = "Estás gastando bastante. Revisá en qué podés ahorrar.";
-      } else if (total > 5000) {
-        advice = "Buen control, pero podrías reducir algunos gastos.";
-      }
-
-      document.getElementById("advice").textContent = "Consejo IA: " + advice;
-    }
-  </script>
+// shortcuts
+const amountInput = document.getElementById("amount");
+const categoryInput = document.getElementById("category");
+const descriptionInput = document.getElementById("description");
+const list = document.getElementById("expenses");
+const totalDiv = document.getElementById("total");
+const adviceDiv = document.getElementById("advice");
+const chart = document.getElementById("chart");
+</script>
 
 </body>
 </html>
