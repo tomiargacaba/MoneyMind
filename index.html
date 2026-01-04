@@ -3,99 +3,46 @@
 <head>
 <meta charset="UTF-8">
 <title>MoneyMind</title>
-
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: #eef2f5;
-  padding: 20px;
-}
-
-h1 {
-  text-align: center;
-  color: #2c3e50;
-}
-
-.container {
-  max-width: 750px;
-  margin: auto;
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-}
-
-input, select, button {
-  width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-  font-size: 16px;
-}
-
-button {
-  background: #27ae60;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-button:hover { background: #219150; }
-
-.delete {
-  background: #e74c3c;
-}
-
-.delete:hover { background: #c0392b; }
-
-.pro {
-  background: #2980b9;
-}
-
-.locked {
-  background: #7f8c8d;
-  cursor: not-allowed;
-}
-
-.total {
-  margin-top: 15px;
-  font-weight: bold;
-  font-size: 18px;
-}
-
-.green { color: #27ae60; }
-.red { color: #e74c3c; }
-.orange { color: #e67e22; }
-
-.advice {
-  margin-top: 15px;
-  background: #ecf0f1;
-  padding: 15px;
-  border-radius: 8px;
-}
-
-.expense {
-  border-bottom: 1px solid #ddd;
-  padding: 6px 0;
-}
-
-canvas {
-  margin-top: 20px;
-}
+body{font-family:Arial,sans-serif;background:#eef2f5;padding:20px}
+h1{text-align:center;color:#2c3e50}
+.container{max-width:780px;margin:auto;background:white;padding:20px;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,.1)}
+input,select,button{width:100%;padding:12px;margin-top:10px;font-size:16px}
+button{background:#27ae60;color:white;border:none;border-radius:6px;cursor:pointer}
+button:hover{background:#219150}
+.delete{background:#e74c3c}
+.delete:hover{background:#c0392b}
+.pro{background:#2980b9}
+.locked{background:#7f8c8d;cursor:not-allowed}
+.total{margin-top:12px;font-weight:bold;font-size:17px}
+.green{color:#27ae60}.red{color:#e74c3c}.orange{color:#e67e22}
+.advice{margin-top:15px;background:#ecf0f1;padding:15px;border-radius:8px}
+.expense{border-bottom:1px solid #ddd;padding:6px 0}
+canvas{margin-top:20px}
 </style>
 </head>
-
 <body>
-
-<h1>MoneyMind – tu dinero claro con inteligencia automática</h1>
-
+<h1>MoneyMind – control inteligente de gastos</h1>
 <div class="container">
 
-<input type="number" id="budget" placeholder="💰 ¿Cuánta plata tenés disponible?">
-<button onclick="saveBudget()">Guardar monto</button>
+<h3>💰 Presupuesto total</h3>
+<input type="number" id="budget" placeholder="¿Cuánta plata tenés disponible?">
+<button onclick="saveBudget()">Guardar presupuesto</button>
 
 <hr>
 
+<h3>🎯 Meta de gasto</h3>
+<select id="period">
+  <option value="dia">Por día</option>
+  <option value="semana">Por semana</option>
+  <option value="mes">Por mes</option>
+</select>
+<input type="number" id="goal" placeholder="¿Cuánto querés gastar en ese período?">
+<button onclick="saveGoal()">Guardar meta</button>
+
+<hr>
+
+<h3>➕ Nuevo gasto</h3>
 <input type="number" id="amount" placeholder="Monto del gasto">
 <select id="category">
   <option>Comida</option>
@@ -103,163 +50,120 @@ canvas {
   <option>Entretenimiento</option>
   <option>Otros</option>
 </select>
-<input type="text" id="description" placeholder="Descripción del gasto">
+<input type="text" id="description" placeholder="Descripción">
 
 <button onclick="addExpense()">Agregar gasto</button>
-<button class="delete" onclick="clearExpenses()">Borrar todos los gastos</button>
-<button id="proBtn" class="pro locked" onclick="showProInfo()">Modo PRO (Premium)</button>
+<button class="delete" onclick="clearExpenses()">Borrar gastos</button>
+<button class="pro locked" onclick="showProInfo()">Modo PRO (Premium)</button>
 
 <div class="total" id="total"></div>
 <div class="total" id="remaining"></div>
-
+<div class="total" id="goalStatus"></div>
 <div class="advice" id="advice"></div>
 
-<canvas id="chart" width="650" height="300"></canvas>
-
+<canvas id="chart" width="650" height="280"></canvas>
 <div id="expenses"></div>
-
 </div>
 
 <script>
-const amountInput = document.getElementById("amount");
-const categoryInput = document.getElementById("category");
-const descriptionInput = document.getElementById("description");
-const budgetInput = document.getElementById("budget");
-const list = document.getElementById("expenses");
-const totalDiv = document.getElementById("total");
-const remainingDiv = document.getElementById("remaining");
-const adviceDiv = document.getElementById("advice");
-const canvas = document.getElementById("chart");
-const ctx = canvas.getContext("2d");
+const amountInput=document.getElementById("amount");
+const categoryInput=document.getElementById("category");
+const descriptionInput=document.getElementById("description");
+const budgetInput=document.getElementById("budget");
+const goalInput=document.getElementById("goal");
+const periodInput=document.getElementById("period");
+const list=document.getElementById("expenses");
+const totalDiv=document.getElementById("total");
+const remainingDiv=document.getElementById("remaining");
+const goalStatus=document.getElementById("goalStatus");
+const adviceDiv=document.getElementById("advice");
+const canvas=document.getElementById("chart");
+const ctx=canvas.getContext("2d");
 
-let expenses = JSON.parse(localStorage.getItem("expenses") || "[]");
-let budget = Number(localStorage.getItem("budget") || 0);
+let expenses=JSON.parse(localStorage.getItem("expenses")||"[]");
+let budget=Number(localStorage.getItem("budget")||0);
+let goal=Number(localStorage.getItem("goal")||0);
+let period=localStorage.getItem("period")||"dia";
 
-if (budget > 0) budgetInput.value = budget;
+budgetInput.value=budget||"";
+goalInput.value=goal||"";
+periodInput.value=period;
 
 render();
 
-// 💰 Presupuesto
-function saveBudget() {
-  const value = Number(budgetInput.value);
-  if (value <= 0) return alert("Ingresá un monto válido");
-  budget = value;
-  localStorage.setItem("budget", budget);
-  render();
+function saveBudget(){
+ const v=Number(budgetInput.value);
+ if(v<=0)return alert("Monto inválido");
+ budget=v;localStorage.setItem("budget",v);render();
 }
 
-// 🔒 Info PRO
-function showProInfo() {
-  alert(
-    "Modo PRO (Premium)\n\n" +
-    "✔ Gráficos avanzados\n" +
-    "✔ Consejos inteligentes\n" +
-    "✔ Análisis de ahorro\n\n" +
-    "Disponible próximamente."
-  );
+function saveGoal(){
+ const v=Number(goalInput.value);
+ if(v<=0)return alert("Meta inválida");
+ goal=v;period=periodInput.value;
+ localStorage.setItem("goal",v);
+ localStorage.setItem("period",period);
+ render();
 }
 
-// ➕ Agregar gasto
-function addExpense() {
-  const amount = Number(amountInput.value);
-  if (amount <= 0) return;
-
-  expenses.push({
-    amount,
-    category: categoryInput.value,
-    description: descriptionInput.value,
-    date: new Date().toLocaleDateString()
-  });
-
-  localStorage.setItem("expenses", JSON.stringify(expenses));
-  amountInput.value = "";
-  descriptionInput.value = "";
-  render();
+function showProInfo(){
+ alert("Funciones PRO:\n• Gráficos avanzados\n• Consejos expertos\n• Análisis por categoría\n\nDisponible próximamente.");
 }
 
-// 🗑️ Borrar
-function clearExpenses() {
-  if (!confirm("¿Seguro que querés borrar todo?")) return;
-  expenses = [];
-  localStorage.removeItem("expenses");
-  render();
+function addExpense(){
+ const amount=Number(amountInput.value);
+ if(amount<=0)return;
+ expenses.push({amount,category:categoryInput.value,description:descriptionInput.value,date:new Date().toLocaleDateString()});
+ localStorage.setItem("expenses",JSON.stringify(expenses));
+ amountInput.value="";descriptionInput.value="";render();
 }
 
-// 🧠 Consejos IA
-function generateAdvice(total, remaining, categories) {
-  let msgs = [];
-
-  if (total === 0) msgs.push("Buen comienzo, todavía no gastaste nada.");
-  if (remaining < 0) msgs.push("⚠️ Estás gastando más de lo que tenés.");
-  if (remaining <= budget * 0.2 && remaining >= 0)
-    msgs.push("⚠️ Te queda menos del 20% de tu plata.");
-
-  let maxCat = "", max = 0;
-  for (let c in categories) {
-    if (categories[c] > max) {
-      max = categories[c];
-      maxCat = c;
-    }
-  }
-
-  if (maxCat) msgs.push(`Gastás más en ${maxCat}.`);
-
-  msgs.push("Activá PRO para consejos avanzados y gráficos.");
-
-  adviceDiv.innerHTML = "🤖 Consejo IA:<br>• " + msgs.join("<br>• ");
+function clearExpenses(){
+ if(!confirm("¿Borrar todos los gastos?"))return;
+ expenses=[];localStorage.removeItem("expenses");render();
 }
 
-// 📊 Gráfico (demo)
-function drawChart(categories) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const keys = Object.keys(categories);
-  if (keys.length === 0) return;
-
-  const values = Object.values(categories);
-  const max = Math.max(...values);
-
-  keys.forEach((k, i) => {
-    const h = (values[i] / max) * 200;
-    const x = 60 + i * 120;
-    const y = 250 - h;
-    ctx.fillStyle = "#3498db";
-    ctx.fillRect(x, y, 80, h);
-    ctx.fillStyle = "black";
-    ctx.fillText(k, x, 270);
-    ctx.fillText("$" + values[i], x, y - 5);
-  });
+function adviceByCategory(cat){
+ if(cat==="Comida")return"Probá cocinar más en casa, comprar marcas económicas y planificar comidas.";
+ if(cat==="Transporte")return"Considerá caminar, usar transporte público o agrupar viajes.";
+ if(cat==="Entretenimiento")return"Reducí salidas pagas y buscá opciones gratis o más económicas.";
+ return"Revisá si este gasto es realmente necesario o se puede postergar.";
 }
 
-// 🔄 Render
-function render() {
-  list.innerHTML = "";
-  let total = 0;
-  let categories = {};
+function render(){
+ list.innerHTML="";
+ let total=0;let categories={};
+ expenses.forEach(e=>{total+=e.amount;categories[e.category]=(categories[e.category]||0)+e.amount;
+ const d=document.createElement("div");d.className="expense";d.textContent=`${e.date} | $${e.amount} | ${e.category} | ${e.description}`;list.appendChild(d);});
 
-  expenses.forEach(e => {
-    total += e.amount;
-    categories[e.category] = (categories[e.category] || 0) + e.amount;
+ const remaining=budget-total;
+ totalDiv.textContent=`Total gastado: $${total}`;
+ remainingDiv.textContent=`Plata restante: $${remaining}`;
+ remainingDiv.className=remaining<0?"total red":remaining<=budget*0.2?"total orange":"total green";
 
-    const div = document.createElement("div");
-    div.className = "expense";
-    div.textContent = `${e.date} | $${e.amount} | ${e.category} | ${e.description}`;
-    list.appendChild(div);
-  });
+ let periodText=period==="dia"?"diaria":period==="semana"?"semanal":"mensual";
+ goalStatus.textContent=goal?`Meta ${periodText}: $${goal}`:"";
 
-  const remaining = budget - total;
+ let msgs=[];
+ if(goal && total>goal){
+ msgs.push(`⚠️ Superaste tu meta ${periodText}.`);
+ let maxCat=Object.keys(categories).reduce((a,b)=>categories[a]>categories[b]?a:b);
+ msgs.push(adviceByCategory(maxCat));
+ }
+ if(remaining<0)msgs.push("Estás gastando más de lo que tenés.");
+ if(msgs.length===0)msgs.push("Vas bien, seguí controlando tus gastos.");
 
-  totalDiv.textContent = `Total gastado: $${total}`;
-  remainingDiv.textContent = `Plata restante: $${remaining}`;
+ adviceDiv.innerHTML="🤖 Consejo IA:<br>• "+msgs.join("<br>• ");
+ drawChart(categories);
+}
 
-  remainingDiv.className =
-    remaining < 0 ? "total red" :
-    remaining <= budget * 0.2 ? "total orange" :
-    "total green";
-
-  generateAdvice(total, remaining, categories);
-  drawChart(categories);
+function drawChart(categories){
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+ const keys=Object.keys(categories);if(!keys.length)return;
+ const vals=Object.values(categories);const max=Math.max(...vals);
+ keys.forEach((k,i)=>{const h=(vals[i]/max)*200;const x=60+i*120;const y=240-h;
+ ctx.fillStyle="#3498db";ctx.fillRect(x,y,80,h);ctx.fillStyle="black";ctx.fillText(k,x,y+215);ctx.fillText("$"+vals[i],x,y-5);});
 }
 </script>
-
 </body>
 </html>
