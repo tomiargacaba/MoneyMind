@@ -9,7 +9,7 @@
 :root{--bg:#f4f6fb;--card:#fff;--text:#222;--primary:#667eea}
 body.dark{--bg:#121212;--card:#1e1e1e;--text:#fff}
 
-body{margin:0;font-family:sans-serif;background:var(--bg);color:var(--text)}
+body{margin:0;font-family:sans-serif;background:var(--bg);color:var(--text); transition: background 0.3s, color 0.3s;}
 
 header{background:var(--primary);color:white;text-align:center;padding:15px;position:relative}
 
@@ -19,35 +19,38 @@ header{background:var(--primary);color:white;text-align:center;padding:15px;posi
   background:rgba(255,255,255,0.3);
   display:flex;align-items:center;justify-content:center;
   font-size:22px;cursor:pointer;
-  color:white; /* FIX: siempre visible */
+  color:white;
 }
-
-body.dark .menu-btn{color:white}
 
 .container{padding:15px}
 
-.card{background:var(--card);padding:15px;border-radius:12px;margin-bottom:10px}
+.card{background:var(--card);padding:15px;border-radius:12px;margin-bottom:10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);}
 
-input,select,button{width:100%;padding:10px;margin-top:8px}
+input,select,button{width:100%;padding:10px;margin-top:8px; box-sizing: border-box;}
 
 button{
   background:var(--primary);color:white;border:none;
   border-radius:10px;
   transition:0.2s;
+  cursor: pointer;
 }
 
-/* ✨ ANIMACIONES */
 button:hover{transform:scale(1.03)}
 button:active{transform:scale(0.97)}
 
+/* CORRECCIÓN AQUÍ: El menú ahora usa variables dinámicas */
 .mobile-menu{
   position:fixed;top:60px;left:10px;
-  background:white;border-radius:10px;padding:10px;
+  background:var(--card); 
+  color:var(--text);
+  border-radius:10px;padding:10px;
   box-shadow:0 10px 20px rgba(0,0,0,0.2);
   z-index:100;
+  border: 1px solid rgba(128,128,128,0.2);
 }
 
-.mobile-menu div{padding:10px;cursor:pointer}
+.mobile-menu div{padding:10px;cursor:pointer; border-bottom: 1px solid rgba(128,128,128,0.1)}
+.mobile-menu div:last-child{border-bottom: none}
 .hidden{display:none}
 </style>
 </head>
@@ -69,21 +72,20 @@ button:active{transform:scale(0.97)}
 <div class="container">
 
 <div id="main">
-
 <div class="card">
-<input id="budget" placeholder="Fondo disponible">
-<button onclick="saveBudget()">Guardar</button>
+<input id="budget" type="number" placeholder="Fondo disponible">
+<button onclick="saveBudget()">Guardar fondo</button>
 <p id="remaining"></p>
 </div>
 
 <div class="card">
-<input id="income" placeholder="Ingreso">
+<input id="income" type="number" placeholder="Ingreso">
 <button onclick="addIncome()">Agregar ingreso</button>
-<button onclick="clearIncomes()">Borrar ingresos</button>
+<button onclick="clearIncomes()" style="background:#888; margin-top:5px">Borrar ingresos</button>
 </div>
 
 <div class="card">
-<input id="amount" placeholder="Gasto">
+<input id="amount" type="number" placeholder="Gasto">
 <select id="category">
 <option>Comida</option>
 <option>Transporte</option>
@@ -91,7 +93,7 @@ button:active{transform:scale(0.97)}
 <option>Otros</option>
 </select>
 <button onclick="addExpense()">Agregar gasto</button>
-<button onclick="clearExpenses()">Borrar gastos</button>
+<button onclick="clearExpenses()" style="background:#888; margin-top:5px">Borrar gastos</button>
 </div>
 
 <div class="card">
@@ -101,11 +103,13 @@ button:active{transform:scale(0.97)}
 </div>
 
 <div id="chart" class="hidden">
-<canvas id="canvas" height="250"></canvas>
+<div class="card">
+<canvas id="canvas" width="300" height="250"></canvas>
+</div>
 </div>
 
 <div id="stats" class="hidden">
-<div id="statsContent"></div>
+<div class="card" id="statsContent"></div>
 </div>
 
 </div>
@@ -130,14 +134,19 @@ function showSection(id){
 
   document.getElementById(id).classList.remove('hidden');
 
-  toggleMenu();
-  drawChart();
+  if(!document.getElementById('mobileMenu').classList.contains('hidden')){
+      toggleMenu();
+  }
+  
+  if(id==='chart') drawChart();
   render();
 }
 
 function toggleDark(){
   document.body.classList.toggle('dark');
   localStorage.setItem('dark',document.body.classList.contains('dark'));
+  render(); // Para refrescar colores de texto si es necesario
+  if(!document.getElementById('chart').classList.contains('hidden')) drawChart();
 }
 
 function saveBudget(){
@@ -151,6 +160,7 @@ function addIncome(){
   if(!val)return;
   incomes.push(val);
   localStorage.setItem('incomes',JSON.stringify(incomes));
+  document.getElementById('income').value = "";
   render();
 }
 
@@ -168,8 +178,8 @@ function addExpense(){
   if(!val)return;
   expenses.push({amount:val,cat});
   localStorage.setItem('expenses',JSON.stringify(expenses));
+  document.getElementById('amount').value = "";
   render();
-  drawChart();
 }
 
 function clearExpenses(){
@@ -188,12 +198,12 @@ function render(){
   document.getElementById('remaining').innerText=
   "Disponible: $" + (budget+earned-spent);
 
-  document.getElementById('total').innerText=
-  "Ingresos: "+earned+" | Gastos: "+spent;
+  document.getElementById('total').innerHTML=
+  "<b>Ingresos:</b> $"+earned+" | <b>Gastos:</b> $"+spent;
 
   let list="";
-  incomes.forEach(i=>list+=`<div>+ $${i}</div>`);
-  expenses.forEach(e=>list+=`<div>- $${e.amount} (${e.cat})</div>`);
+  incomes.forEach(i=>list+=`<div style="color:green">+ $${i}</div>`);
+  expenses.forEach(e=>list+=`<div style="color:red">- $${e.amount} (${e.cat})</div>`);
   document.getElementById('list').innerHTML=list;
 
   drawStats();
@@ -208,17 +218,26 @@ function drawChart(){
   expenses.forEach(e=>sums[e.cat]=(sums[e.cat]||0)+e.amount);
 
   let keys=Object.keys(sums);
+  
+  // Color del texto según el modo
+  ctx.fillStyle = document.body.classList.contains('dark') ? "#ffffff" : "#222222";
+  
   if(!keys.length){
-    ctx.fillText("No hay datos",20,40);
+    ctx.fillText("No hay datos de gastos",20,40);
     return;
   }
 
   let max=Math.max(...Object.values(sums));
 
   keys.forEach((k,i)=>{
-    let h=(sums[k]/max)*200;
-    ctx.fillRect(40+i*60,240-h,30,h);
-    ctx.fillText(k,40+i*60,250);
+    let h=(sums[k]/max)*150;
+    ctx.fillStyle = "#667eea"; // Color barras
+    ctx.fillRect(40+i*70,200-h,40,h);
+    
+    // Etiqueta debajo
+    ctx.fillStyle = document.body.classList.contains('dark') ? "#ffffff" : "#222222";
+    ctx.fillText(k.substring(0,6), 40+i*70, 220);
+    ctx.fillText("$"+sums[k], 40+i*70, 235);
   });
 }
 
@@ -226,8 +245,9 @@ function drawStats(){
   let c={};
   expenses.forEach(e=>c[e.cat]=(c[e.cat]||0)+1);
 
-  let txt="";
-  for(let k in c){txt+=k+": "+c[k]+"<br>"}
+  let txt="<h3>Frecuencia por categoría:</h3>";
+  for(let k in c){txt+= "<b>" + k + "</b>: " + c[k] + " veces<br>"}
+  if(Object.keys(c).length === 0) txt += "Sin datos";
 
   document.getElementById('statsContent').innerHTML=txt;
 }
@@ -237,4 +257,3 @@ render();
 
 </body>
 </html>
-
