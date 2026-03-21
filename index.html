@@ -6,86 +6,49 @@
 <title>MoneyMind</title>
 
 <style>
-:root{
-  --bg:#f4f6fb;
-  --card:#fff;
-  --text:#222;
-  --primary:#667eea;
-}
-body.dark{
-  --bg:#121212;
-  --card:#1e1e1e;
-  --text:#fff;
-}
+:root{--bg:#f4f6fb;--card:#fff;--text:#222;--primary:#667eea}
+body.dark{--bg:#121212;--card:#1e1e1e;--text:#fff}
 
-body{
-  margin:0;
-  font-family:sans-serif;
-  background:var(--bg);
-  color:var(--text);
-}
+body{margin:0;font-family:sans-serif;background:var(--bg);color:var(--text)}
 
-header{
-  background:var(--primary);
-  color:white;
-  text-align:center;
-  padding:15px;
-  position:relative;
-}
+header{background:var(--primary);color:white;text-align:center;padding:15px;position:relative}
 
 .menu-btn{
-  position:absolute;
-  left:10px;
-  top:10px;
-  width:40px;
-  height:40px;
-  border-radius:50%;
+  position:absolute;left:10px;top:10px;
+  width:42px;height:42px;border-radius:50%;
   background:rgba(255,255,255,0.3);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:22px;
-  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;cursor:pointer;
+  color:white; /* FIX: siempre visible */
 }
 
-.container{padding:15px;}
+body.dark .menu-btn{color:white}
 
-.card{
-  background:var(--card);
-  padding:15px;
-  border-radius:12px;
-  margin-bottom:10px;
-}
+.container{padding:15px}
 
-input,select,button{
-  width:100%;
-  padding:10px;
-  margin-top:8px;
-}
+.card{background:var(--card);padding:15px;border-radius:12px;margin-bottom:10px}
+
+input,select,button{width:100%;padding:10px;margin-top:8px}
 
 button{
-  background:var(--primary);
-  color:white;
-  border:none;
+  background:var(--primary);color:white;border:none;
+  border-radius:10px;
+  transition:0.2s;
 }
 
+/* ✨ ANIMACIONES */
+button:hover{transform:scale(1.03)}
+button:active{transform:scale(0.97)}
+
 .mobile-menu{
-  position:fixed;
-  top:60px;
-  left:10px;
-  background:white;
-  border-radius:10px;
-  padding:10px;
+  position:fixed;top:60px;left:10px;
+  background:white;border-radius:10px;padding:10px;
   box-shadow:0 10px 20px rgba(0,0,0,0.2);
   z-index:100;
 }
 
-.mobile-menu div{
-  padding:10px;
-  cursor:pointer;
-}
-
-.hidden{display:none;}
+.mobile-menu div{padding:10px;cursor:pointer}
+.hidden{display:none}
 </style>
 </head>
 
@@ -96,7 +59,6 @@ button{
 <h2>MoneyMind</h2>
 </header>
 
-<!-- MENU -->
 <div id="mobileMenu" class="mobile-menu hidden">
   <div onclick="showSection('main')">Inicio</div>
   <div onclick="showSection('chart')">Gráfico</div>
@@ -106,8 +68,8 @@ button{
 
 <div class="container">
 
-<!-- MAIN -->
 <div id="main">
+
 <div class="card">
 <input id="budget" placeholder="Fondo disponible">
 <button onclick="saveBudget()">Guardar</button>
@@ -117,6 +79,7 @@ button{
 <div class="card">
 <input id="income" placeholder="Ingreso">
 <button onclick="addIncome()">Agregar ingreso</button>
+<button onclick="clearIncomes()">Borrar ingresos</button>
 </div>
 
 <div class="card">
@@ -128,6 +91,7 @@ button{
 <option>Otros</option>
 </select>
 <button onclick="addExpense()">Agregar gasto</button>
+<button onclick="clearExpenses()">Borrar gastos</button>
 </div>
 
 <div class="card">
@@ -136,12 +100,10 @@ button{
 </div>
 </div>
 
-<!-- CHART -->
 <div id="chart" class="hidden">
 <canvas id="canvas" height="250"></canvas>
 </div>
 
-<!-- STATS -->
 <div id="stats" class="hidden">
 <div id="statsContent"></div>
 </div>
@@ -153,9 +115,7 @@ let expenses=JSON.parse(localStorage.getItem('expenses')||'[]');
 let incomes=JSON.parse(localStorage.getItem('incomes')||'[]');
 let budget=Number(localStorage.getItem('budget')||0);
 
-if(localStorage.getItem('dark')==='true'){
-  document.body.classList.add('dark');
-}
+if(localStorage.getItem('dark')==='true')document.body.classList.add('dark');
 
 document.getElementById('budget').value=budget;
 
@@ -194,6 +154,14 @@ function addIncome(){
   render();
 }
 
+function clearIncomes(){
+  if(confirm("¿Borrar todos los ingresos?")){
+    incomes=[];
+    localStorage.removeItem('incomes');
+    render();
+  }
+}
+
 function addExpense(){
   let val=Number(document.getElementById('amount').value);
   let cat=document.getElementById('category').value;
@@ -202,6 +170,15 @@ function addExpense(){
   localStorage.setItem('expenses',JSON.stringify(expenses));
   render();
   drawChart();
+}
+
+function clearExpenses(){
+  if(confirm("¿Borrar todos los gastos?")){
+    expenses=[];
+    localStorage.removeItem('expenses');
+    render();
+    drawChart();
+  }
 }
 
 function render(){
@@ -250,9 +227,7 @@ function drawStats(){
   expenses.forEach(e=>c[e.cat]=(c[e.cat]||0)+1);
 
   let txt="";
-  for(let k in c){
-    txt+=k+": "+c[k]+"<br>";
-  }
+  for(let k in c){txt+=k+": "+c[k]+"<br>"}
 
   document.getElementById('statsContent').innerHTML=txt;
 }
@@ -262,3 +237,4 @@ render();
 
 </body>
 </html>
+
