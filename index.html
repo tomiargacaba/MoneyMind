@@ -3,60 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MoneyMind</title>
+<title>MoneyMind PRO</title>
 
 <style>
 :root{--bg:#f4f6fb;--card:#fff;--text:#222;--primary:#667eea}
 body.dark{--bg:#121212;--card:#1e1e1e;--text:#fff}
 
-body{margin:0;font-family:sans-serif;background:var(--bg);color:var(--text); transition: background 0.3s, color 0.3s;}
-
+body{margin:0;font-family:sans-serif;background:var(--bg);color:var(--text)}
 header{background:var(--primary);color:white;text-align:center;padding:15px;position:relative}
 
-.menu-btn{
-  position:absolute;left:10px;top:10px;
-  width:42px;height:42px;border-radius:50%;
-  background:rgba(255,255,255,0.3);
-  display:flex;align-items:center;justify-content:center;
-  font-size:22px;cursor:pointer;
-  color:white;
-}
+.menu-btn{position:absolute;left:10px;top:10px;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;color:white}
 
 .container{padding:15px}
+.card{background:var(--card);padding:15px;border-radius:12px;margin-bottom:10px}
 
-.card{background:var(--card);padding:15px;border-radius:12px;margin-bottom:10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);}
-
-input,select,button{width:100%;padding:10px;margin-top:8px; box-sizing: border-box;}
-
-button{
-  background:var(--primary);color:white;border:none;
-  border-radius:10px;
-  transition:0.2s;
-  cursor: pointer;
-}
-
+input,select,button{width:100%;padding:10px;margin-top:8px}
+button{background:var(--primary);color:white;border:none;border-radius:10px;transition:0.2s}
 button:hover{transform:scale(1.03)}
 button:active{transform:scale(0.97)}
 
-/* CORRECCIÓN AQUÍ: El menú ahora usa variables dinámicas */
-.mobile-menu{
-  position:fixed;top:60px;left:10px;
-  background:var(--card); 
-  color:var(--text);
-  border-radius:10px;padding:10px;
-  box-shadow:0 10px 20px rgba(0,0,0,0.2);
-  z-index:100;
-  border: 1px solid rgba(128,128,128,0.2);
-}
-
-.mobile-menu div{padding:10px;cursor:pointer; border-bottom: 1px solid rgba(128,128,128,0.1)}
-.mobile-menu div:last-child{border-bottom: none}
+.mobile-menu{position:fixed;top:60px;left:10px;background:white;border-radius:10px;padding:10px;box-shadow:0 10px 20px rgba(0,0,0,0.2);z-index:100}
+.mobile-menu div{padding:10px;cursor:pointer}
 .hidden{display:none}
 </style>
 </head>
 
 <body>
-
 <header>
 <div class="menu-btn" onclick="toggleMenu()">⋮</div>
 <h2>MoneyMind</h2>
@@ -72,20 +44,19 @@ button:active{transform:scale(0.97)}
 <div class="container">
 
 <div id="main">
+
 <div class="card">
-<input id="budget" type="number" placeholder="Fondo disponible">
-<button onclick="saveBudget()">Guardar fondo</button>
-<p id="remaining"></p>
+<h3 id="money"></h3>
 </div>
 
 <div class="card">
-<input id="income" type="number" placeholder="Ingreso">
+<input id="income" placeholder="Ingreso">
 <button onclick="addIncome()">Agregar ingreso</button>
-<button onclick="clearIncomes()" style="background:#888; margin-top:5px">Borrar ingresos</button>
+<button onclick="clearIncomes()">Borrar ingresos</button>
 </div>
 
 <div class="card">
-<input id="amount" type="number" placeholder="Gasto">
+<input id="amount" placeholder="Gasto">
 <select id="category">
 <option>Comida</option>
 <option>Transporte</option>
@@ -93,23 +64,22 @@ button:active{transform:scale(0.97)}
 <option>Otros</option>
 </select>
 <button onclick="addExpense()">Agregar gasto</button>
-<button onclick="clearExpenses()" style="background:#888; margin-top:5px">Borrar gastos</button>
+<button onclick="clearExpenses()">Borrar gastos</button>
 </div>
 
 <div class="card">
+<p id="alert"></p>
 <p id="total"></p>
 <div id="list"></div>
 </div>
 </div>
 
 <div id="chart" class="hidden">
-<div class="card">
-<canvas id="canvas" width="300" height="250"></canvas>
-</div>
+<canvas id="canvas" height="250"></canvas>
 </div>
 
 <div id="stats" class="hidden">
-<div class="card" id="statsContent"></div>
+<div id="statsContent"></div>
 </div>
 
 </div>
@@ -117,139 +87,110 @@ button:active{transform:scale(0.97)}
 <script>
 let expenses=JSON.parse(localStorage.getItem('expenses')||'[]');
 let incomes=JSON.parse(localStorage.getItem('incomes')||'[]');
-let budget=Number(localStorage.getItem('budget')||0);
 
 if(localStorage.getItem('dark')==='true')document.body.classList.add('dark');
 
-document.getElementById('budget').value=budget;
-
-function toggleMenu(){
-  document.getElementById('mobileMenu').classList.toggle('hidden');
-}
+function toggleMenu(){document.getElementById('mobileMenu').classList.toggle('hidden')}
 
 function showSection(id){
-  document.getElementById('main').classList.add('hidden');
-  document.getElementById('chart').classList.add('hidden');
-  document.getElementById('stats').classList.add('hidden');
-
-  document.getElementById(id).classList.remove('hidden');
-
-  if(!document.getElementById('mobileMenu').classList.contains('hidden')){
-      toggleMenu();
-  }
-  
-  if(id==='chart') drawChart();
-  render();
+['main','chart','stats'].forEach(s=>document.getElementById(s).classList.add('hidden'));
+document.getElementById(id).classList.remove('hidden');
+toggleMenu();
+render();
+drawChart();
 }
 
 function toggleDark(){
-  document.body.classList.toggle('dark');
-  localStorage.setItem('dark',document.body.classList.contains('dark'));
-  render(); // Para refrescar colores de texto si es necesario
-  if(!document.getElementById('chart').classList.contains('hidden')) drawChart();
-}
-
-function saveBudget(){
-  budget=Number(document.getElementById('budget').value);
-  localStorage.setItem('budget',budget);
-  render();
+document.body.classList.toggle('dark');
+localStorage.setItem('dark',document.body.classList.contains('dark'));
 }
 
 function addIncome(){
-  let val=Number(document.getElementById('income').value);
-  if(!val)return;
-  incomes.push(val);
-  localStorage.setItem('incomes',JSON.stringify(incomes));
-  document.getElementById('income').value = "";
-  render();
+let val=Number(income.value);
+if(!val)return;
+incomes.push(val);
+localStorage.setItem('incomes',JSON.stringify(incomes));
+render();
 }
 
 function clearIncomes(){
-  if(confirm("¿Borrar todos los ingresos?")){
-    incomes=[];
-    localStorage.removeItem('incomes');
-    render();
-  }
+if(confirm('¿Borrar ingresos?')){
+incomes=[];
+localStorage.removeItem('incomes');
+render();
+}
 }
 
 function addExpense(){
-  let val=Number(document.getElementById('amount').value);
-  let cat=document.getElementById('category').value;
-  if(!val)return;
-  expenses.push({amount:val,cat});
-  localStorage.setItem('expenses',JSON.stringify(expenses));
-  document.getElementById('amount').value = "";
-  render();
+let val=Number(amount.value);
+let cat=category.value;
+if(!val)return;
+expenses.push({amount:val,cat});
+localStorage.setItem('expenses',JSON.stringify(expenses));
+render();
+drawChart();
 }
 
 function clearExpenses(){
-  if(confirm("¿Borrar todos los gastos?")){
-    expenses=[];
-    localStorage.removeItem('expenses');
-    render();
-    drawChart();
-  }
+if(confirm('¿Borrar gastos?')){
+expenses=[];
+localStorage.removeItem('expenses');
+render();
+drawChart();
+}
 }
 
 function render(){
-  let spent=expenses.reduce((a,b)=>a+b.amount,0);
-  let earned=incomes.reduce((a,b)=>a+b,0);
+let spent=expenses.reduce((a,b)=>a+b.amount,0);
+let earned=incomes.reduce((a,b)=>a+b,0);
+let balance=earned-spent;
 
-  document.getElementById('remaining').innerText=
-  "Disponible: $" + (budget+earned-spent);
+document.getElementById('money').innerText="Dinero disponible: $"+balance;
 
-  document.getElementById('total').innerHTML=
-  "<b>Ingresos:</b> $"+earned+" | <b>Gastos:</b> $"+spent;
+document.getElementById('total').innerText="Ingresos: "+earned+" | Gastos: "+spent;
 
-  let list="";
-  incomes.forEach(i=>list+=`<div style="color:green">+ $${i}</div>`);
-  expenses.forEach(e=>list+=`<div style="color:red">- $${e.amount} (${e.cat})</div>`);
-  document.getElementById('list').innerHTML=list;
+// ALERTAS INTELIGENTES
+let alert="";
+if(balance<0) alert="⚠️ Estás gastando más de lo que ganás";
+else if(spent>earned*0.7) alert="💡 Estás gastando mucho, intentá reducir gastos";
+else alert="✅ Buen control de gastos";
 
-  drawStats();
+document.getElementById('alert').innerText=alert;
+
+let list="";
+incomes.forEach(i=>list+=`<div>+ $${i}</div>`);
+expenses.forEach(e=>list+=`<div>- $${e.amount} (${e.cat})</div>`);
+list.innerHTML=list;
+document.getElementById('list').innerHTML=list;
+
+drawStats();
 }
 
 function drawChart(){
-  let c=document.getElementById('canvas');
-  let ctx=c.getContext('2d');
-  ctx.clearRect(0,0,c.width,c.height);
+let c=document.getElementById('canvas');
+let ctx=c.getContext('2d');
+ctx.clearRect(0,0,c.width,c.height);
 
-  let sums={};
-  expenses.forEach(e=>sums[e.cat]=(sums[e.cat]||0)+e.amount);
+let sums={};
+expenses.forEach(e=>sums[e.cat]=(sums[e.cat]||0)+e.amount);
 
-  let keys=Object.keys(sums);
-  
-  // Color del texto según el modo
-  ctx.fillStyle = document.body.classList.contains('dark') ? "#ffffff" : "#222222";
-  
-  if(!keys.length){
-    ctx.fillText("No hay datos de gastos",20,40);
-    return;
-  }
+let keys=Object.keys(sums);
+if(!keys.length){ctx.fillText("No hay datos",20,40);return;}
 
-  let max=Math.max(...Object.values(sums));
-
-  keys.forEach((k,i)=>{
-    let h=(sums[k]/max)*150;
-    ctx.fillStyle = "#667eea"; // Color barras
-    ctx.fillRect(40+i*70,200-h,40,h);
-    
-    // Etiqueta debajo
-    ctx.fillStyle = document.body.classList.contains('dark') ? "#ffffff" : "#222222";
-    ctx.fillText(k.substring(0,6), 40+i*70, 220);
-    ctx.fillText("$"+sums[k], 40+i*70, 235);
-  });
+let max=Math.max(...Object.values(sums));
+keys.forEach((k,i)=>{
+let h=(sums[k]/max)*200;
+ctx.fillRect(40+i*60,240-h,30,h);
+ctx.fillText(k,40+i*60,250);
+});
 }
 
 function drawStats(){
-  let c={};
-  expenses.forEach(e=>c[e.cat]=(c[e.cat]||0)+1);
-
-  let txt="<h3>Frecuencia por categoría:</h3>";
-  for(let k in c){txt+= "<b>" + k + "</b>: " + c[k] + " veces<br>"}
-  if(Object.keys(c).length === 0) txt += "Sin datos";
-
-  document.getElementById('statsContent').innerHTML=txt;
+let c={};
+expenses.forEach(e=>c[e.cat]=(c[e.cat]||0)+1);
+let txt="";
+for(let k in c){txt+=k+": "+c[k]+"<br>"}
+document.getElementById('statsContent').innerHTML=txt;
 }
 
 render();
